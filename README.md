@@ -6,8 +6,8 @@ A self-contained, tool-neutral setup that turns Claude Code and OpenAI Codex int
 
 | Feature | Description |
 |---|---|
-| Desktop notification when waiting for input | "Claude is waiting" (Claude `Notification` event) or "Codex is waiting" (Codex `PermissionRequest` event). Glass sound. |
-| Desktop notification when a turn ends | "Claude finished" or "Codex finished". Pop sound. |
+| Desktop notification when waiting for input | "⏳ Claude is waiting" (Claude `Notification` event) or "⏳ Codex is waiting" (Codex `PermissionRequest` event). Glass sound. |
+| Desktop notification when a turn ends | "✅ Claude finished" or "✅ Codex finished". Pop sound. |
 | Click target is your terminal or IDE | Walks the process tree at runtime to identify VS Code, Cursor, Windsurf, Antigravity, iTerm2, Apple Terminal, etc. Clicking the notification focuses that app and, where the app's scripting API allows, the specific tab or window the hook fired from. |
 | Project, branch, and message in the body | Multi-line message body so long branch names and prompt text wrap naturally. |
 | Custom branded icon | A separate `.app` bundle with your logo baked in, distinct from any Homebrew `terminal-notifier` install. |

@@ -31,7 +31,7 @@
 #   session_id                     Both tools
 #
 # Notification layout:
-#   Title    "<Tool> is waiting"             "Claude is waiting" or "Codex is waiting"
+#   Title    "⏳ <Tool> is waiting"          "⏳ Claude is waiting" or "⏳ Codex is waiting"
 #   Subtitle "<app>"                         short, brand-correct app name
 #   Body     line 1: "<project>"             repo / dir name
 #            line 2: "<branch>"              git branch (omitted outside a repo)

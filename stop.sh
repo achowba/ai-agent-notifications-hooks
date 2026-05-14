@@ -29,11 +29,12 @@
 #   .session_id        both tools
 #
 # Notification layout:
-#   Title    "<Tool> finished"            "Claude finished" or "Codex finished"
+#   Title    "✅ <Tool> finished"         "✅ Claude finished" or "✅ Codex finished"
 #   Subtitle "<app>"                      short, brand-correct app name
 #   Body     line 1: "<project>"          repo / dir name
 #            line 2: "<branch>"           git branch (omitted outside a repo)
-#            line 3: "Task complete"      literal status string
+#            line 3: "Task complete"      literal status string (or the
+#                                         captured prompt when available)
 ###############################################################################
 
 # Resolve this script's own directory so the hooks system can live anywhere

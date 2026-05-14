@@ -111,16 +111,31 @@ resolve_tool() {
 # -----------------------------------------------------------------------------
 # tool_title
 # -----------------------------------------------------------------------------
-# Return the brand-correct base for a notification title. Tools have
-# different brand styles ("Claude Code" feels too long; "Claude" reads
-# better in a notification banner).
+# Return the brand-correct title for a notification, prefixed with an emoji
+# that matches the current state for at-a-glance scanning in Notification
+# Center.
+#
+# State to emoji map:
+#   "is waiting"  → ⏳   (input or permission required)
+#   "finished"    → ✅   (turn complete)
+#   anything else → (no emoji)
+#
+# Tools have different brand styles ("Claude Code" feels too long; "Claude"
+# reads better in a notification banner).
 #
 # Args: $1 = tool name (claude | codex)
 #       $2 = state suffix ("is waiting" | "finished")
 tool_title() {
-  case "$1" in
-    codex)   printf 'Codex %s' "$2" ;;
-    *)       printf 'Claude %s' "$2" ;;
+  _tool="$1"
+  _state="$2"
+  _emoji=""
+  case "$_state" in
+    *waiting*)   _emoji='⏳ ' ;;
+    *finished*)  _emoji='✅ ' ;;
+  esac
+  case "$_tool" in
+    codex)   printf '%sCodex %s' "$_emoji" "$_state" ;;
+    *)       printf '%sClaude %s' "$_emoji" "$_state" ;;
   esac
 }
 
