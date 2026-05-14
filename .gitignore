@@ -1,0 +1,16 @@
+# Built .app bundles: regenerated from ./assets/ via ./build.sh on each clone.
+# Excluded from version control because they are derived artifacts of the
+# upstream Homebrew terminal-notifier (BSD licensed). Run `./build.sh` after
+# cloning to recreate them locally.
+/claude-notifier.app/
+/codex-notifier.app/
+
+# Generated icon set artifacts. The source PNGs in assets/ are committed;
+# the iconset directory and .icns files regenerate from them via build.sh.
+/assets/*.iconset/
+/assets/*.icns
+
+# Cache and state files. These live OUTSIDE the repo at
+# ~/.notification-hooks-state/, but listed here defensively in case the
+# directory ever moves inside the repo.
+.notification-hooks-state/
