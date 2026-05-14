@@ -6,7 +6,7 @@ A self-contained, tool-neutral setup that turns Claude Code and OpenAI Codex int
 
 | Feature | Description |
 |---|---|
-| Desktop notification when waiting for input | "⏳ Claude is waiting" (Claude `Notification` event) or "⏳ Codex is waiting" (Codex `PermissionRequest` event). Glass sound. |
+| Desktop notification when waiting for input | "⏳ Claude is waiting" (fires on Claude's `Notification` event for idle waits, AND on Claude's `PreToolUse` event for tool permission prompts when the system has been idle ≥5 seconds) or "⏳ Codex is waiting" (Codex `PermissionRequest`). Glass sound. |
 | Desktop notification when a turn ends | "✅ Claude finished" or "✅ Codex finished". Pop sound. |
 | Click target is your terminal or IDE | Walks the process tree at runtime to identify VS Code, Cursor, Windsurf, Antigravity, iTerm2, Apple Terminal, etc. Clicking the notification focuses that app and, where the app's scripting API allows, the specific tab or window the hook fired from. |
 | Project, branch, and message in the body | Multi-line message body so long branch names and prompt text wrap naturally. |
@@ -58,6 +58,7 @@ Each tool's config file calls the same hook script and passes its tool name (`cl
 | `~/.notification-hooks/_lib.sh` | Shared POSIX shell helpers. Bundle detection, branch lookup, settings resolution, toggle gating, tool-name routing. |
 | `~/.notification-hooks/notification.sh` | Handler for "waiting for input" events. Accepts `claude` or `codex` as the first arg. |
 | `~/.notification-hooks/user_prompt.sh` | Handler for `UserPromptSubmit`. Captures the user's most recent prompt to a state file so `stop.sh` can show it in the turn-end notification. |
+| `~/.notification-hooks/pre_tool_use.sh` | Handler for Claude's `PreToolUse` event with matcher `Write\|Edit\|Bash`. Fires a "Claude is waiting" notification when Claude is about to use a tool that needs permission, gated by system idle time so it stays quiet while you're actively working. Required because Claude Code's `Notification` event does not fire for tool permission prompts (only for idle waits between turns). |
 | `~/.notification-hooks/stop.sh` | Handler for turn-end events. Accepts `claude` or `codex` as the first arg. Reads the captured prompt from the state file and uses it as the body's last line; falls back to "Task complete" when no prompt was captured. |
 | `~/.notification-hooks/focus.sh` | Click handler. Invoked by `terminal-notifier -execute` when the notification is clicked. Reads cached state for the session and runs the right AppleScript per app to focus the specific tab (iTerm2, Apple Terminal) or window (VS Code, Cursor, Windsurf, Antigravity). |
 | `~/.notification-hooks/claude-notifier.app` | Branded `terminal-notifier` bundle used by Claude hooks. Bundle ID `local.claude-notifier`. |
@@ -173,6 +174,22 @@ Add the hooks block to `~/.claude/settings.json`. Merge into your existing confi
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "sh ~/.notification-hooks/user_prompt.sh claude" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          { "type": "command", "command": "sh ~/.notification-hooks/pre_tool_use.sh claude" }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -184,6 +201,8 @@ Add the hooks block to `~/.claude/settings.json`. Merge into your existing confi
   }
 }
 ```
+
+The `PreToolUse` matcher restricts the event to `Write`, `Edit`, and `Bash` — the three tools that typically trigger a permission prompt. `pre_tool_use.sh` further gates the notification on system idle time (>= 5 seconds) so it stays silent while you're actively at the keyboard and only fires when you've tabbed away.
 
 ### 5. Configure Codex
 
