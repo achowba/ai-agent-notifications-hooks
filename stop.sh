@@ -36,7 +36,10 @@
 #            line 3: "Task complete"      literal status string
 ###############################################################################
 
-. ~/.notification-hooks/_lib.sh
+# Resolve this script's own directory so the hooks system can live anywhere
+# on disk. See notification.sh for full rationale.
+HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$HOOKS_DIR/_lib.sh"
 
 tool=$(resolve_tool "$1")
 
@@ -103,7 +106,7 @@ if [ -n "$session_id" ]; then
       -subtitle "$app" \
       -message "$body" \
       -sound Pop \
-      -execute "sh $HOME/.notification-hooks/focus.sh $session_id" >/dev/null 2>&1 ) &
+      -execute "sh $HOOKS_DIR/focus.sh $session_id" >/dev/null 2>&1 ) &
 else
   ( "$NOTIFIER_BIN" \
       -title "$title" \

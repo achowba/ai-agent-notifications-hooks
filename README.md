@@ -13,6 +13,12 @@ A self-contained, tool-neutral setup that turns Claude Code and OpenAI Codex int
 | Custom branded icon | A separate `.app` bundle with your logo baked in, distinct from any Homebrew `terminal-notifier` install. |
 | Per-tool, per-event, per-scope toggles | `CLAUDE_NOTIFICATIONS_*` and `CODEX_NOTIFICATIONS_*` resolved across shell env, project config dirs, and global config dirs. |
 
+## Where to install
+
+The default and recommended location is `~/.notification-hooks/`. The directory is **fully relocatable**, though. Each script computes its own path at runtime via `$(cd "$(dirname "$0")" && pwd)`, so the folder works at any path on disk. The only constraint is that `~/.claude/settings.json` and `~/.codex/hooks.json` must point at wherever you actually placed it.
+
+The per-session state directory at `~/.notification-hooks-state/` is intentionally fixed (it stores user state, not install state) and is independent of where the scripts live.
+
 ## Architecture overview
 
 ```

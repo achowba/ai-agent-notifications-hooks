@@ -38,7 +38,12 @@
 #            line 3: "<message>"             the actual prompt or description
 ###############################################################################
 
-. ~/.notification-hooks/_lib.sh
+# Resolve this script's own directory so the hooks system can live anywhere
+# on disk. settings.json / hooks.json point at a specific path; everything
+# else (the sourced lib, the .app bundles, the click handler) is found
+# relative to wherever this script actually lives.
+HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$HOOKS_DIR/_lib.sh"
 
 # Resolve the tool name. First arg should be "claude" or "codex"; defaults
 # to "claude" for backward compatibility with configs that haven't been
@@ -114,7 +119,7 @@ if [ -n "$session_id" ]; then
       -subtitle "$app" \
       -message "$body" \
       -sound Glass \
-      -execute "sh $HOME/.notification-hooks/focus.sh $session_id" >/dev/null 2>&1 ) &
+      -execute "sh $HOOKS_DIR/focus.sh $session_id" >/dev/null 2>&1 ) &
 else
   ( "$NOTIFIER_BIN" \
       -title "$title" \

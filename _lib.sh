@@ -54,6 +54,22 @@
 ###############################################################################
 
 # -----------------------------------------------------------------------------
+# Hooks directory
+# -----------------------------------------------------------------------------
+# Resolved by each entry-point script before this file is sourced. Falls
+# back to ~/.notification-hooks/ when the caller hasn't set it, so this lib
+# can still be dot-sourced directly for ad-hoc debugging.
+#
+# Entry-point scripts compute HOOKS_DIR with:
+#   HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
+#
+# This makes the whole directory relocatable: clone or move it anywhere,
+# update the paths in ~/.claude/settings.json and ~/.codex/hooks.json to
+# match, and nothing else needs to change.
+: "${HOOKS_DIR:=$HOME/.notification-hooks}"
+
+
+# -----------------------------------------------------------------------------
 # Notifier binary paths
 # -----------------------------------------------------------------------------
 # Each tool has its own custom-branded copy of terminal-notifier so macOS
@@ -65,15 +81,15 @@
 # `NOTIFIER_BIN` is kept as a backward-compatible default that points at the
 # Claude bundle. New code should call `notifier_bin <tool>` instead so it
 # always resolves to the right binary.
-NOTIFIER_BIN="$HOME/.notification-hooks/claude-notifier.app/Contents/MacOS/terminal-notifier"
+NOTIFIER_BIN="$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier"
 
 # Return the absolute path to the right terminal-notifier binary for the
 # given tool. Falls back to the Claude bundle for unknown tools so old
 # configs keep working.
 notifier_bin() {
   case "$1" in
-    codex)   printf '%s' "$HOME/.notification-hooks/codex-notifier.app/Contents/MacOS/terminal-notifier" ;;
-    *)       printf '%s' "$HOME/.notification-hooks/claude-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    codex)   printf '%s' "$HOOKS_DIR/codex-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    *)       printf '%s' "$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier" ;;
   esac
 }
 

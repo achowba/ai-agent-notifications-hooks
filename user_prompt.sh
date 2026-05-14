@@ -30,7 +30,10 @@
 #   prompt for that session. Read by stop.sh and notification.sh.
 ###############################################################################
 
-. ~/.notification-hooks/_lib.sh
+# Resolve this script's own directory so the hooks system can live anywhere
+# on disk. See notification.sh for full rationale.
+HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$HOOKS_DIR/_lib.sh"
 
 # resolve_tool is called for future-proofing; the prompt capture itself
 # is identical across tools. Adding the arg keeps the calling convention
