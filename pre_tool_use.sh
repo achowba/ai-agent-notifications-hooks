@@ -48,10 +48,18 @@ should_notify INPUT "$cwd" "$tool" || exit 0
 # HIDIdleTime is reported in nanoseconds; divide by 1e9 to get seconds.
 # When the user is actively in the terminal, this gate exits early so we
 # don't spam every Edit / Write / Bash call.
-idle=$(ioreg -c IOHIDSystem 2>/dev/null | awk '/HIDIdleTime/ {print int($NF/1000000000); exit}')
-[ -z "$idle" ] && idle=0
-if [ "$idle" -lt 5 ]; then
-  exit 0
+#
+# Skipped for Copilot: `preToolUse` is Copilot's ONLY "needs your attention"
+# signal (no equivalent of Claude's idle-wait Notification event), so gating
+# would suppress the one fire that matters. The trade-off is more notifs in
+# autopilot/allow-all mode — mute via `COPILOT_NOTIFICATIONS_INPUT=off` if
+# unwanted.
+if [ "$tool" != "copilot" ]; then
+  idle=$(ioreg -c IOHIDSystem 2>/dev/null | awk '/HIDIdleTime/ {print int($NF/1000000000); exit}')
+  [ -z "$idle" ] && idle=0
+  if [ "$idle" -lt 5 ]; then
+    exit 0
+  fi
 fi
 
 # Pull tool info for the notification body. Try snake_case first (Claude,
