@@ -22,11 +22,12 @@
 #   gate it by idle time so it doesn't spam during active work.
 #
 # Stdin payload fields used:
-#   .tool_name        "Write", "Edit", or "Bash"
-#   .tool_input       tool-specific input (file_path for Edit/Write,
-#                                          command for Bash)
-#   .cwd              project root
-#   .session_id       session UUID
+#   .tool_name // .toolName         "Write", "Edit", or "Bash" (Claude/Codex
+#                                   snake_case; Grok camelCase, names aliased)
+#   .tool_input // .toolInput       tool-specific input (file_path for Edit/
+#                                   Write, command for Bash)
+#   .cwd                            project root
+#   .session_id // .sessionId       session UUID (snake_case / camelCase)
 ###############################################################################
 
 HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -53,22 +54,24 @@ if [ "$idle" -lt 5 ]; then
   exit 0
 fi
 
-# Pull tool info for the notification body.
-tool_name=$(printf '%s' "$input" | jq -r '.tool_name // "Tool"')
-session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+# Pull tool info for the notification body. Try snake_case first (Claude,
+# Codex) then camelCase (Grok). Grok aliases Claude tool names like Bash/
+# Edit/Write to its internal names so the matcher works the same way.
+tool_name=$(printf '%s' "$input" | jq -r '.tool_name // .toolName // "Tool"')
+session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty')
 
 # Tool-specific summary line shown in the notification body.
 case "$tool_name" in
-  Write)
-    target=$(printf '%s' "$input" | jq -r '.tool_input.file_path // ""')
+  Write|write_file)
+    target=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .toolInput.file_path // ""')
     detail="Wants to create: $target"
     ;;
-  Edit)
-    target=$(printf '%s' "$input" | jq -r '.tool_input.file_path // ""')
+  Edit|search_replace)
+    target=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .toolInput.file_path // ""')
     detail="Wants to edit: $target"
     ;;
-  Bash)
-    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // ""')
+  Bash|run_terminal_cmd)
+    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // .toolInput.command // ""')
     # Truncate long commands so the body line stays readable.
     if [ "${#cmd}" -gt 80 ]; then
       cmd=$(printf '%s' "$cmd" | cut -c1-77)...

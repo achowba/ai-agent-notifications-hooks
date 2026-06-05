@@ -4,9 +4,9 @@
 #
 # Shared helpers for AI-assistant notification hooks. Reusable across tools
 # whose hook framework matches the "command + JSON on stdin" pattern (Claude
-# Code, OpenAI Codex). Tool name is passed in as the first arg of each hook
-# script (claude | codex) so this lib can adapt env var prefixes, settings
-# directory walks, and notification titles.
+# Code, OpenAI Codex, xAI Grok). Tool name is passed in as the first arg of
+# each hook script (claude | codex | grok) so this lib can adapt env var
+# prefixes, settings directory walks, and notification titles.
 #
 # Loaded via POSIX dot-source from notification.sh and stop.sh:
 #   . ~/.notification-hooks/_lib.sh
@@ -37,8 +37,8 @@
 #   tool_title                       Branded title prefix for the given
 #                                    tool: "Claude is waiting" vs.
 #                                    "Codex is waiting" etc.
-#   resolve_tool                     Normalise the tool arg to "claude" or
-#                                    "codex", defaulting to "claude".
+#   resolve_tool                     Normalise the tool arg to "claude",
+#                                    "codex", or "grok"; defaults to "claude".
 #
 # Public variables:
 #   NOTIFIER_BIN                     Absolute path to the custom-branded
@@ -49,6 +49,7 @@
 #   Settings examples:
 #     Claude:  "command": "sh ~/.notification-hooks/stop.sh claude"
 #     Codex:   "command": "sh ~/.notification-hooks/stop.sh codex"
+#     Grok:    "command": "sh ~/.notification-hooks/stop.sh grok"
 #   The lib functions take an explicit `tool` parameter where it matters;
 #   callers pass through the resolved tool name.
 ###############################################################################
@@ -77,6 +78,7 @@
 #
 #   claude-notifier.app  →  local.claude-notifier  →  Claude burst logo
 #   codex-notifier.app   →  local.codex-notifier   →  Codex terminal logo
+#   grok-notifier.app    →  local.grok-notifier    →  Grok mark
 #
 # `NOTIFIER_BIN` is kept as a backward-compatible default that points at the
 # Claude bundle. New code should call `notifier_bin <tool>` instead so it
@@ -89,6 +91,7 @@ NOTIFIER_BIN="$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier"
 notifier_bin() {
   case "$1" in
     codex)   printf '%s' "$HOOKS_DIR/codex-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    grok)    printf '%s' "$HOOKS_DIR/grok-notifier.app/Contents/MacOS/terminal-notifier" ;;
     *)       printf '%s' "$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier" ;;
   esac
 }
@@ -103,6 +106,7 @@ notifier_bin() {
 resolve_tool() {
   case "$1" in
     codex|CODEX|Codex)    printf 'codex' ;;
+    grok|GROK|Grok)       printf 'grok' ;;
     *)                    printf 'claude' ;;
   esac
 }
@@ -123,7 +127,7 @@ resolve_tool() {
 # Tools have different brand styles ("Claude Code" feels too long; "Claude"
 # reads better in a notification banner).
 #
-# Args: $1 = tool name (claude | codex)
+# Args: $1 = tool name (claude | codex | grok)
 #       $2 = state suffix ("is waiting" | "finished")
 tool_title() {
   _tool="$1"
@@ -135,6 +139,7 @@ tool_title() {
   esac
   case "$_tool" in
     codex)   printf '%sCodex %s' "$_emoji" "$_state" ;;
+    grok)    printf '%sGrok %s' "$_emoji" "$_state" ;;
     *)       printf '%sClaude %s' "$_emoji" "$_state" ;;
   esac
 }
@@ -311,28 +316,34 @@ git_branch() {
 # -----------------------------------------------------------------------------
 # find_project_settings_dir
 # -----------------------------------------------------------------------------
-# Walks upward from a starting directory looking for either a `.claude/` or
-# `.codex/` config directory. Both Claude Code and Codex use the same
-# parent-walk heuristic to find their project scope.
+# Walks upward from a starting directory looking for a `.claude/`, `.codex/`,
+# or `.grok/` config directory. All three tools use the same parent-walk
+# heuristic to find their project scope.
 #
-# Returns the absolute path on stdout (e.g. "/path/to/repo/.claude" or
-# "/path/to/repo/.codex"), or empty if neither was found before reaching /.
+# Returns the absolute path on stdout (e.g. "/path/to/repo/.claude",
+# "/path/to/repo/.codex", or "/path/to/repo/.grok"), or empty if none was
+# found before reaching /.
 #
-# Why support both?
-#   This file is dot-sourced from hooks that may be wired into either tool.
+# Why support all three?
+#   This file is dot-sourced from hooks that may be wired into any tool.
 #   When called from a Codex hook in a project that has only `.codex/`,
 #   we don't want to ignore that scope's `env` block just because there's
 #   no `.claude/` next to it.
 #
 # Args: $1 = starting dir (defaults to $PWD)
-#       $2 = preferred tool name ("claude" | "codex"). When both
-#            directories exist at the same level, the tool's own dir wins.
+#       $2 = preferred tool name ("claude" | "codex" | "grok"). When
+#            multiple directories exist at the same level, the tool's own
+#            dir wins.
 find_project_settings_dir() {
   _d="${1:-$PWD}"
   _preferred="${2:-claude}"
   while [ -n "$_d" ] && [ "$_d" != "/" ]; do
     if [ "$_preferred" = "codex" ] && [ -d "$_d/.codex" ]; then
       printf '%s' "$_d/.codex"
+      return
+    fi
+    if [ "$_preferred" = "grok" ] && [ -d "$_d/.grok" ]; then
+      printf '%s' "$_d/.grok"
       return
     fi
     if [ "$_preferred" = "claude" ] && [ -d "$_d/.claude" ]; then
@@ -345,6 +356,10 @@ find_project_settings_dir() {
     fi
     if [ -d "$_d/.codex" ]; then
       printf '%s' "$_d/.codex"
+      return
+    fi
+    if [ -d "$_d/.grok" ]; then
+      printf '%s' "$_d/.grok"
       return
     fi
     _d=$(dirname "$_d")
@@ -386,6 +401,11 @@ get_setting() {
 
   if [ "$_tool" = "codex" ]; then
     _files="$_proj_settings/hooks.json $_proj_settings/config.toml $HOME/.codex/hooks.json $HOME/.codex/config.toml"
+  elif [ "$_tool" = "grok" ]; then
+    # Grok stores hooks as a dir of .json files (one per logical group),
+    # plus a top-level config.toml. We don't glob the per-event files for
+    # the env block; expect toggles to live in config.toml or the shell env.
+    _files="$_proj_settings/config.toml $HOME/.grok/config.toml"
   else
     _files="$_proj_settings/settings.local.json $_proj_settings/settings.json $HOME/.claude/settings.local.json $HOME/.claude/settings.json"
   fi
@@ -435,14 +455,14 @@ get_setting() {
 #   <PREFIX>_NOTIFICATIONS          master kill switch for all hooks
 #   <PREFIX>_NOTIFICATIONS_<EVENT>  per-event override (e.g. _STOP, _INPUT)
 #
-# <PREFIX> is "CLAUDE" or "CODEX" based on the calling tool, so each tool
-# can be toggled independently. Disable values (case insensitive): off, 0,
-# false, no.
+# <PREFIX> is "CLAUDE", "CODEX", or "GROK" based on the calling tool, so each
+# tool can be toggled independently. Disable values (case insensitive): off,
+# 0, false, no.
 #
 # Args:
 #   $1 = event suffix in uppercase (e.g. "STOP", "INPUT")
 #   $2 = cwd from the hook payload
-#   $3 = tool name ("claude" | "codex"), defaults to "claude"
+#   $3 = tool name ("claude" | "codex" | "grok"), defaults to "claude"
 #
 # Return: 0 (enabled) or 1 (disabled).
 should_notify() {
@@ -450,7 +470,10 @@ should_notify() {
   _cwd="$2"
   _tool="${3:-claude}"
   _prefix="CLAUDE"
-  [ "$_tool" = "codex" ] && _prefix="CODEX"
+  case "$_tool" in
+    codex) _prefix="CODEX" ;;
+    grok)  _prefix="GROK" ;;
+  esac
 
   case "$(get_setting "${_prefix}_NOTIFICATIONS" "$_cwd" "$_tool")" in
     off|OFF|0|false|FALSE|no|NO) return 1 ;;

@@ -7,9 +7,10 @@
 # upgrading Homebrew's terminal-notifier.
 #
 # Usage:
-#   ./build.sh                 # build both Claude and Codex bundles
+#   ./build.sh                 # build Claude, Codex, and Grok bundles
 #   ./build.sh claude          # build only the Claude bundle
 #   ./build.sh codex           # build only the Codex bundle
+#   ./build.sh grok            # build only the Grok bundle
 #
 # Prerequisites:
 #   - macOS 12+
@@ -29,7 +30,7 @@ if [ ! -d "$APP_SRC" ]; then
 fi
 
 # Build a single bundle.
-# Args: $1 = tool name ("claude" | "codex")
+# Args: $1 = tool name ("claude" | "codex" | "grok")
 build_bundle() {
   local tool="$1"
   local logo="$ASSETS/${tool}-logo.png"
@@ -41,6 +42,7 @@ build_bundle() {
   case "$tool" in
     claude)  display_name="Claude Notifier" ;;
     codex)   display_name="Codex Notifier" ;;
+    grok)    display_name="Grok Notifier" ;;
     *)       echo "Unknown tool: $tool" >&2; return 1 ;;
   esac
   local internal_name="${display_name// /}"
@@ -101,12 +103,13 @@ main() {
     all)
       build_bundle claude
       build_bundle codex
+      build_bundle grok
       ;;
-    claude|codex)
+    claude|codex|grok)
       build_bundle "$1"
       ;;
     *)
-      echo "Usage: $0 [all|claude|codex]" >&2
+      echo "Usage: $0 [all|claude|codex|grok]" >&2
       exit 1
       ;;
   esac

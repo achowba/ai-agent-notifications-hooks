@@ -3,8 +3,9 @@
 # stop.sh
 #
 # Cross-tool turn-end notification hook. Fires when an AI assistant
-# finishes a turn. Both Claude Code and OpenAI Codex emit a `Stop` event
-# with compatible payloads (cwd + session_id present in both).
+# finishes a turn. Claude Code, OpenAI Codex, and xAI Grok all emit a
+# `Stop` event with compatible payloads (cwd present in all three;
+# session_id snake_case for Claude/Codex, camelCase sessionId for Grok).
 #
 # Usage from each tool's config:
 #
@@ -25,8 +26,8 @@
 #   {"decision":"block","reason":"..."}
 #
 # Stdin payload fields used:
-#   .cwd               both tools
-#   .session_id        both tools
+#   .cwd                            all tools
+#   .session_id // .sessionId       Claude/Codex snake_case; Grok camelCase
 #
 # Notification layout:
 #   Title    "✅ <Tool> finished"         "✅ Claude finished" or "✅ Codex finished"
@@ -53,7 +54,7 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // ""')
 
 should_notify STOP "$cwd" "$tool" || exit 0
 
-session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty')
 project=$(basename "$cwd")
 branch=$(git_branch "$cwd")
 bundle=$(find_parent_bundle_cached "$session_id")

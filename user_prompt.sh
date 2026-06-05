@@ -18,8 +18,8 @@
 #                   "command": "sh ~/.notification-hooks/user_prompt.sh codex" }] }]
 #
 # Stdin payload fields used:
-#   .session_id        both tools
-#   .prompt            both tools (the text the user just submitted)
+#   .session_id // .sessionId       Claude/Codex snake_case; Grok camelCase
+#   .prompt                         all tools (the text the user just submitted)
 #
 # Output: this script must print NOTHING to stdout. Both tools treat hook
 # stdout as developer-context injection: any output here would silently
@@ -41,7 +41,7 @@ HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
 tool=$(resolve_tool "$1")
 
 input=$(cat)
-session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty')
 prompt=$(printf '%s' "$input" | jq -r '.prompt // empty')
 
 # Silently exit if we can't identify the session or there's no prompt.

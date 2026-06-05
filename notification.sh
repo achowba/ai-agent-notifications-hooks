@@ -4,7 +4,7 @@
 #
 # Cross-tool notification hook. Surfaces a macOS notification when the
 # calling AI assistant is waiting for user input or permission. Supports
-# both Claude Code and OpenAI Codex.
+# Claude Code, OpenAI Codex, and xAI Grok.
 #
 # Usage from each tool's config:
 #
@@ -25,10 +25,11 @@
 #
 # Stdin payload fields (try in order):
 #   .message                       Claude's prompt text
-#   .tool_input.description        Codex's permission reason
+#   .tool_input.description        Codex's permission reason (snake_case)
+#   .toolInput.description         Grok's permission reason (camelCase)
 #   .prompt                        Codex UserPromptSubmit fallback
-#   cwd                            Both tools
-#   session_id                     Both tools
+#   .cwd                           All tools
+#   .session_id // .sessionId      Claude/Codex use snake_case; Grok camelCase
 #
 # Notification layout:
 #   Title    "⏳ <Tool> is waiting"          "⏳ Claude is waiting" or "⏳ Codex is waiting"
@@ -45,9 +46,9 @@
 HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$HOOKS_DIR/_lib.sh"
 
-# Resolve the tool name. First arg should be "claude" or "codex"; defaults
-# to "claude" for backward compatibility with configs that haven't been
-# updated yet.
+# Resolve the tool name. First arg should be "claude", "codex", or "grok";
+# defaults to "claude" for backward compatibility with configs that haven't
+# been updated yet.
 tool=$(resolve_tool "$1")
 
 # Pick the branded notifier binary for this tool. Each tool has its own
@@ -63,17 +64,21 @@ should_notify INPUT "$cwd" "$tool" || exit 0
 
 # Pull the message text. Try Claude's `.message` first (the historical
 # field name), then Codex's `.tool_input.description` (used by
-# PermissionRequest), then `.prompt` (used by UserPromptSubmit), then a
-# generic fallback string. Tools that don't populate any of these still
-# get a sensible notification with just the project/branch context.
+# PermissionRequest), then Grok's `.toolInput.description` (camelCase
+# equivalent), then `.prompt` (used by UserPromptSubmit), then a generic
+# fallback string. Tools that don't populate any of these still get a
+# sensible notification with just the project/branch context.
 msg=$(printf '%s' "$input" | jq -r '
   .message
   // .tool_input.description
+  // .toolInput.description
   // .prompt
   // "needs your attention"
 ')
 
-session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+# Grok emits camelCase (`sessionId`) per the runtime contract; Claude and
+# Codex use snake_case. Read both so the script is tool-agnostic.
+session_id=$(printf '%s' "$input" | jq -r '.session_id // .sessionId // empty')
 project=$(basename "$cwd")
 branch=$(git_branch "$cwd")
 
