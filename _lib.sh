@@ -4,9 +4,10 @@
 #
 # Shared helpers for AI-assistant notification hooks. Reusable across tools
 # whose hook framework matches the "command + JSON on stdin" pattern (Claude
-# Code, OpenAI Codex, xAI Grok). Tool name is passed in as the first arg of
-# each hook script (claude | codex | grok) so this lib can adapt env var
-# prefixes, settings directory walks, and notification titles.
+# Code, OpenAI Codex, xAI Grok, GitHub Copilot). Tool name is passed in as
+# the first arg of each hook script (claude | codex | grok | copilot) so
+# this lib can adapt env var prefixes, settings directory walks, and
+# notification titles.
 #
 # Loaded via POSIX dot-source from notification.sh and stop.sh:
 #   . ~/.notification-hooks/_lib.sh
@@ -76,9 +77,10 @@
 # Each tool has its own custom-branded copy of terminal-notifier so macOS
 # shows the right logo and per-tool notification permission entry:
 #
-#   claude-notifier.app  →  local.claude-notifier  →  Claude burst logo
-#   codex-notifier.app   →  local.codex-notifier   →  Codex terminal logo
-#   grok-notifier.app    →  local.grok-notifier    →  Grok mark
+#   claude-notifier.app   →  local.claude-notifier   →  Claude burst logo
+#   codex-notifier.app    →  local.codex-notifier    →  Codex terminal logo
+#   grok-notifier.app     →  local.grok-notifier     →  Grok mark
+#   copilot-notifier.app  →  local.copilot-notifier  →  GitHub Copilot mark
 #
 # `NOTIFIER_BIN` is kept as a backward-compatible default that points at the
 # Claude bundle. New code should call `notifier_bin <tool>` instead so it
@@ -90,9 +92,10 @@ NOTIFIER_BIN="$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier"
 # configs keep working.
 notifier_bin() {
   case "$1" in
-    codex)   printf '%s' "$HOOKS_DIR/codex-notifier.app/Contents/MacOS/terminal-notifier" ;;
-    grok)    printf '%s' "$HOOKS_DIR/grok-notifier.app/Contents/MacOS/terminal-notifier" ;;
-    *)       printf '%s' "$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    codex)    printf '%s' "$HOOKS_DIR/codex-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    grok)     printf '%s' "$HOOKS_DIR/grok-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    copilot)  printf '%s' "$HOOKS_DIR/copilot-notifier.app/Contents/MacOS/terminal-notifier" ;;
+    *)        printf '%s' "$HOOKS_DIR/claude-notifier.app/Contents/MacOS/terminal-notifier" ;;
   esac
 }
 
@@ -105,9 +108,10 @@ notifier_bin() {
 # any old config that calls these scripts without a tool name.
 resolve_tool() {
   case "$1" in
-    codex|CODEX|Codex)    printf 'codex' ;;
-    grok|GROK|Grok)       printf 'grok' ;;
-    *)                    printf 'claude' ;;
+    codex|CODEX|Codex)          printf 'codex' ;;
+    grok|GROK|Grok)             printf 'grok' ;;
+    copilot|COPILOT|Copilot)    printf 'copilot' ;;
+    *)                          printf 'claude' ;;
   esac
 }
 
@@ -138,9 +142,10 @@ tool_title() {
     *finished*)  _emoji='✅ ' ;;
   esac
   case "$_tool" in
-    codex)   printf '%sCodex %s' "$_emoji" "$_state" ;;
-    grok)    printf '%sGrok %s' "$_emoji" "$_state" ;;
-    *)       printf '%sClaude %s' "$_emoji" "$_state" ;;
+    codex)    printf '%sCodex %s' "$_emoji" "$_state" ;;
+    grok)     printf '%sGrok %s' "$_emoji" "$_state" ;;
+    copilot)  printf '%sCopilot %s' "$_emoji" "$_state" ;;
+    *)        printf '%sClaude %s' "$_emoji" "$_state" ;;
   esac
 }
 
@@ -346,6 +351,10 @@ find_project_settings_dir() {
       printf '%s' "$_d/.grok"
       return
     fi
+    if [ "$_preferred" = "copilot" ] && [ -d "$_d/.github" ]; then
+      printf '%s' "$_d/.github"
+      return
+    fi
     if [ "$_preferred" = "claude" ] && [ -d "$_d/.claude" ]; then
       printf '%s' "$_d/.claude"
       return
@@ -360,6 +369,10 @@ find_project_settings_dir() {
     fi
     if [ -d "$_d/.grok" ]; then
       printf '%s' "$_d/.grok"
+      return
+    fi
+    if [ -d "$_d/.github" ] && [ -d "$_d/.github/hooks" ]; then
+      printf '%s' "$_d/.github"
       return
     fi
     _d=$(dirname "$_d")
@@ -406,6 +419,12 @@ get_setting() {
     # plus a top-level config.toml. We don't glob the per-event files for
     # the env block; expect toggles to live in config.toml or the shell env.
     _files="$_proj_settings/config.toml $HOME/.grok/config.toml"
+  elif [ "$_tool" = "copilot" ]; then
+    # Copilot stores user-level hooks at ~/.copilot/hooks/*.json plus user
+    # settings in ~/.copilot/settings.json (the user-managed file; the
+    # sibling config.json is auto-managed). Project-level hooks live at
+    # <project>/.github/hooks/*.json; we don't glob those for env blocks.
+    _files="$HOME/.copilot/settings.json $HOME/.copilot/config.json"
   else
     _files="$_proj_settings/settings.local.json $_proj_settings/settings.json $HOME/.claude/settings.local.json $HOME/.claude/settings.json"
   fi
@@ -471,8 +490,9 @@ should_notify() {
   _tool="${3:-claude}"
   _prefix="CLAUDE"
   case "$_tool" in
-    codex) _prefix="CODEX" ;;
-    grok)  _prefix="GROK" ;;
+    codex)    _prefix="CODEX" ;;
+    grok)     _prefix="GROK" ;;
+    copilot)  _prefix="COPILOT" ;;
   esac
 
   case "$(get_setting "${_prefix}_NOTIFICATIONS" "$_cwd" "$_tool")" in

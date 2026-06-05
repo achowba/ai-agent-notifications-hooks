@@ -7,10 +7,11 @@
 # upgrading Homebrew's terminal-notifier.
 #
 # Usage:
-#   ./build.sh                 # build Claude, Codex, and Grok bundles
+#   ./build.sh                 # build Claude, Codex, Grok, and Copilot bundles
 #   ./build.sh claude          # build only the Claude bundle
 #   ./build.sh codex           # build only the Codex bundle
 #   ./build.sh grok            # build only the Grok bundle
+#   ./build.sh copilot         # build only the Copilot bundle
 #
 # Prerequisites:
 #   - macOS 12+
@@ -30,7 +31,7 @@ if [ ! -d "$APP_SRC" ]; then
 fi
 
 # Build a single bundle.
-# Args: $1 = tool name ("claude" | "codex" | "grok")
+# Args: $1 = tool name ("claude" | "codex" | "grok" | "copilot")
 build_bundle() {
   local tool="$1"
   local logo="$ASSETS/${tool}-logo.png"
@@ -40,10 +41,11 @@ build_bundle() {
   local bundle_id="local.${tool}-notifier"
   local display_name
   case "$tool" in
-    claude)  display_name="Claude Notifier" ;;
-    codex)   display_name="Codex Notifier" ;;
-    grok)    display_name="Grok Notifier" ;;
-    *)       echo "Unknown tool: $tool" >&2; return 1 ;;
+    claude)   display_name="Claude Notifier" ;;
+    codex)    display_name="Codex Notifier" ;;
+    grok)     display_name="Grok Notifier" ;;
+    copilot)  display_name="Copilot Notifier" ;;
+    *)        echo "Unknown tool: $tool" >&2; return 1 ;;
   esac
   local internal_name="${display_name// /}"
 
@@ -104,12 +106,13 @@ main() {
       build_bundle claude
       build_bundle codex
       build_bundle grok
+      build_bundle copilot
       ;;
-    claude|codex|grok)
+    claude|codex|grok|copilot)
       build_bundle "$1"
       ;;
     *)
-      echo "Usage: $0 [all|claude|codex|grok]" >&2
+      echo "Usage: $0 [all|claude|codex|grok|copilot]" >&2
       exit 1
       ;;
   esac

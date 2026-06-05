@@ -5,6 +5,7 @@
 /claude-notifier.app/
 /codex-notifier.app/
 /grok-notifier.app/
+/copilot-notifier.app/
 
 # Generated icon set artifacts. The source PNGs in assets/ are committed;
 # the iconset directory and .icns files regenerate from them via build.sh.
